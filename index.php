@@ -3,35 +3,30 @@ session_start();
 if (isset($_POST['reset'])) {
     session_unset(); 
     session_destroy(); 
-    header("Location: " . $_SERVER['PHP_SELF']); // przekeerowuje na nową stronę
+    header("Location: " . $_SERVER['PHP_SELF']); 
     exit(); 
 }
 
-// sprawdzanie danych czy zostały przesłane z formularza
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Ustawiamy liczbę uczestników i dane uczestników
     if (isset($_POST['numParticipants']) && $_POST['numParticipants'] > 0) {
         $_SESSION['numParticipants'] = intval($_POST['numParticipants']);
-        $_SESSION['round'] = 1; // Rozpoczynamy pierwszą rundę
+        $_SESSION['round'] = 1; 
     }
 
     if (isset($_POST['participants'])) {
         $_SESSION['participants'] = $_POST['participants'];
     }
 
-    // zapisujemy zwycięzców
     if (isset($_POST['winners'])) {
         $_SESSION['winners'] = $_POST['winners'];
     }
 
-    // przechodzimy do kolejnej rundy
     if (isset($_SESSION['participants']) && isset($_SESSION['winners']) && count($_SESSION['winners']) > 0) {
         $_SESSION['participants'] = $_SESSION['winners'];
         unset($_SESSION['winners']);
         $_SESSION['round']++; 
     }
 
-    // Jeśli mamy tylko jednego uczestnika zapisujemy zwycięzcę
     if (isset($_SESSION['participants']) && count($_SESSION['participants']) == 1) {
         $_SESSION['finalWinner'] = $_SESSION['participants'][0];
     }
@@ -52,14 +47,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <h1>Generator Drabinek Turniejowych</h1>
 
         <?php if (!isset($_SESSION['numParticipants']) || $_SESSION['numParticipants'] === 0): ?>
-            <!-- Formularz wyboru liczby uczestników -->
             <form method="POST" action="">
                 <label for="numParticipants">Podaj liczbę uczestników (musi być potęgą dwójki, np. 2, 4, 8):</label>
                 <input type="number" id="numParticipants" name="numParticipants" min="2" step="2" required>
                 <button type="submit">Dalej</button>
             </form>
         <?php elseif (!isset($_SESSION['participants'])): ?>
-            <!-- Formularz imiona uczestników -->
             <h2>Wprowadź imiona i nazwiska uczestników:</h2>
             <form method="POST" action="">
                 <input type="hidden" name="numParticipants" value="<?= $_SESSION['numParticipants'] ?>">
@@ -74,11 +67,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <button type="submit">Generuj Drabinkę</button>
             </form>
         <?php elseif (isset($_SESSION['participants']) && !isset($_SESSION['finalWinner'])): ?>
-            <!-- Drabinka z rundami -->
             <h2>Wprowadzeni uczestnicy:</h2>
             <div class="bracket">
                 <?php
-                // Tasowanie uczestników
                 shuffle($_SESSION['participants']);
                 $matches = array_chunk($_SESSION['participants'], 2);
                 ?>
@@ -89,7 +80,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <?php foreach ($matches as $index => $match): ?>
                         <div class="match">
-                            <!-- Sprawdzamy, czy mamy 2 uczestników w meczu -->
                             <?php if (count($match) == 2): ?>
                                 <div class="participant"><?= htmlspecialchars($match[0]) ?></div>
                                 <div class="participant"><?= htmlspecialchars($match[1]) ?></div>
@@ -99,7 +89,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <option value="<?= htmlspecialchars($match[1]) ?>"><?= htmlspecialchars($match[1]) ?></option>
                                 </select>
                             <?php else: ?>
-                                <!-- Jeśli jest tylko jeden uczestnik w parze, wyświetlamy go samodzielnie -->
                                 <div class="participant"><?= htmlspecialchars($match[0]) ?></div>
                                 <input type="hidden" name="winners[]" value="<?= htmlspecialchars($match[0]) ?>" />
                                 <p>Wybierz zwycięzcę (brak pary)</p>
@@ -111,13 +100,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
         <?php elseif (isset($_SESSION['finalWinner'])): ?>
-            <!-- Wynik końcowy -->
             <div class="final">
                 
                 <h1>Zwycięzcą jest <span style="color: red"><?= htmlspecialchars($_SESSION['finalWinner']) ?></span></h1>
             </div>
 
-            <!-- Opcja ponownego rozpoczęcia turnieju -->
             <form method="POST" action="">
                 <button type="submit" name="reset" value="true">Zacznij od nowa</button>
             </form>
