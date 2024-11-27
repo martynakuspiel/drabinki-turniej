@@ -51,7 +51,6 @@ p {
     margin-top: 10px;
 }
 
-/* Formularz i inputy */
 form {
     display: flex;
     flex-direction: column;
@@ -104,7 +103,6 @@ button:disabled {
     cursor: not-allowed;
 }
 
-/* Drabinka */
 .bracket {
     display: flex;
     flex-direction: column;
@@ -139,7 +137,6 @@ select {
     padding: 8px;
 }
 
-/* Finał */
 .final {
     text-align: center;
 
