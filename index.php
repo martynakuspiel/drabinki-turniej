@@ -1,16 +1,18 @@
 <?php
 session_start();
+
 if (isset($_POST['reset'])) {
-    session_unset(); 
-    session_destroy(); 
-    header("Location: " . $_SERVER['PHP_SELF']); 
-    exit(); 
+    session_unset();
+    session_destroy();
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit();
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['numParticipants']) && $_POST['numParticipants'] > 0) {
         $_SESSION['numParticipants'] = intval($_POST['numParticipants']);
-        $_SESSION['round'] = 1; 
+        $_SESSION['round'] = 1;
+        $_SESSION['rounds'] = []; 
     }
 
     if (isset($_POST['participants'])) {
@@ -18,20 +20,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (isset($_POST['winners'])) {
-        $_SESSION['winners'] = $_POST['winners'];
+        if (!isset($_SESSION['rounds'][$_SESSION['round']])) {
+            $_SESSION['rounds'][$_SESSION['round']] = [];
+        }
+        $_SESSION['rounds'][$_SESSION['round']] = $_SESSION['participants'];
+        $_SESSION['participants'] = $_POST['winners'];
+        $_SESSION['round']++;
     }
 
-    if (isset($_SESSION['participants']) && isset($_SESSION['winners']) && count($_SESSION['winners']) > 0) {
-        $_SESSION['participants'] = $_SESSION['winners'];
-        unset($_SESSION['winners']);
-        $_SESSION['round']++; 
-    }
-
-    if (isset($_SESSION['participants']) && count($_SESSION['participants']) == 1) {
+    if (isset($_SESSION['participants']) && count($_SESSION['participants']) === 1) {
         $_SESSION['finalWinner'] = $_SESSION['participants'][0];
+        $_SESSION['rounds'][$_SESSION['round']] = $_SESSION['participants'];
     }
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -48,14 +49,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <?php if (!isset($_SESSION['numParticipants']) || $_SESSION['numParticipants'] === 0): ?>
             <form method="POST" action="">
-                <label for="numParticipants">Podaj liczbę uczestników (musi być potęgą dwójki, np. 2, 4, 8):</label>
-                <input type="number" id="numParticipants" name="numParticipants" min="2" step="2" required>
+                <label for="numParticipants">Podaj liczbę uczestników:</label>
+                <input type="number" id="numParticipants" name="numParticipants" min="2" required>
                 <button type="submit">Dalej</button>
             </form>
         <?php elseif (!isset($_SESSION['participants'])): ?>
             <h2>Wprowadź imiona i nazwiska uczestników:</h2>
             <form method="POST" action="">
-                <input type="hidden" name="numParticipants" value="<?= $_SESSION['numParticipants'] ?>">
                 <div class="participants-list">
                     <?php for ($i = 1; $i <= $_SESSION['numParticipants']; $i++): ?>
                         <div>
@@ -67,20 +67,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <button type="submit">Generuj Drabinkę</button>
             </form>
         <?php elseif (isset($_SESSION['participants']) && !isset($_SESSION['finalWinner'])): ?>
-            <h2>Wprowadzeni uczestnicy:</h2>
+            <h2>Runda <?= $_SESSION['round'] ?></h2>
             <div class="bracket">
                 <?php
                 shuffle($_SESSION['participants']);
                 $matches = array_chunk($_SESSION['participants'], 2);
                 ?>
-
-                <h3>Runda <?= $_SESSION['round'] ?></h3>
                 <form method="POST" action="">
-                    <input type="hidden" name="numParticipants" value="<?= $_SESSION['numParticipants'] ?>">
-
                     <?php foreach ($matches as $index => $match): ?>
                         <div class="match">
-                            <?php if (count($match) == 2): ?>
+                            <?php if (count($match) === 2): ?>
                                 <div class="participant"><?= htmlspecialchars($match[0]) ?></div>
                                 <div class="participant"><?= htmlspecialchars($match[1]) ?></div>
                                 <label for="winner_<?= $index ?>">Wybierz zwycięzcę:</label>
@@ -91,20 +87,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <?php else: ?>
                                 <div class="participant"><?= htmlspecialchars($match[0]) ?></div>
                                 <input type="hidden" name="winners[]" value="<?= htmlspecialchars($match[0]) ?>" />
-                                <p>Wybierz zwycięzcę (brak pary)</p>
+                                <p>Brak pary, przechodzi dalej</p>
                             <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                     <button type="submit">Przejdź do następnej rundy</button>
                 </form>
             </div>
-
         <?php elseif (isset($_SESSION['finalWinner'])): ?>
-            <div class="final">
-                
-                <h1>Zwycięzcą jest <span style="color: red"><?= htmlspecialchars($_SESSION['finalWinner']) ?></span></h1>
-            </div>
 
+            <h2>Podsumowanie Turnieju</h2>
+            <div class="summary">
+                <?php foreach ($_SESSION['rounds'] as $roundNumber => $roundParticipants): ?>
+                    <h3>Runda <?= $roundNumber ?></h3>
+                    <div class="round">
+                        <?php foreach ($roundParticipants as $participant): ?>
+                            <div class="participant"><?= htmlspecialchars($participant) ?></div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+            
+            <div class="final">
+                <h1>Zwycięzca: <span style="color: red"><?= htmlspecialchars($_SESSION['finalWinner']) ?></span></h1>
+            </div>
             <form method="POST" action="">
                 <button type="submit" name="reset" value="true">Zacznij od nowa</button>
             </form>
@@ -112,3 +118,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </body>
 </html>
+
